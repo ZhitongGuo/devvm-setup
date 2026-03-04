@@ -1,0 +1,11 @@
+scan_timeout = 30
+command_timeout = 1000
+
+[character]
+success_symbol = "[➜](bold green)"
+
+[directory]
+truncation_length = 3
+
+[git_branch]
+symbol = "🌱 "

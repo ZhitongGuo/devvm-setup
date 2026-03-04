@@ -1,0 +1,29 @@
+[user]
+    email = YOUR_USERNAME@fb.com
+    name = Your Name
+[http "https://git.internal.tfbnw.net/"]
+    sslCert = /var/facebook/credentials/YOUR_USERNAME/x509/YOUR_USERNAME.pem
+[http "https://manifold.c2p.facebook.net/"]
+    sslCert = /var/facebook/credentials/YOUR_USERNAME/x509/YOUR_USERNAME.pem
+[http "https://git.internal.tfbnw.net"]
+	sslCert = /var/facebook/credentials/naikl/x509/naikl.pem
+	sslKey = /var/facebook/credentials/naikl/x509/naikl.pem
+[http "https://manifold.c2p.facebook.net"]
+	sslCert = /var/facebook/credentials/naikl/x509/naikl.pem
+[http "https://mononoke-git-lfs.internal.tfbnw.net"]
+	sslCert = /var/facebook/credentials/naikl/x509/naikl.pem
+	sslKey = /var/facebook/credentials/naikl/x509/naikl.pem
+[http]
+    proxy = fwdproxy:8080
+    proxySSLCert=/var/facebook/credentials/YOUR_USERNAME/x509/YOUR_USERNAME.pem
+    proxySSLKey=/var/facebook/credentials/YOUR_USERNAME/x509/YOUR_USERNAME.pem
+[credential "https://github.com"]
+    helper =
+    helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+    helper =
+    helper = !/usr/bin/gh auth git-credential
+[http "https://github.com"]
+    proxy = http://localhost:9871
+[https]
+    proxy = fwdproxy:8080
