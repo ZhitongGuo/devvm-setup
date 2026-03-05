@@ -1,7 +1,11 @@
-source /usr/facebook/ops/rc/master.zshrc
+# Source Meta's master zshrc on DevVMs only
+[[ -f /usr/facebook/ops/rc/master.zshrc ]] && source /usr/facebook/ops/rc/master.zshrc
 
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+# Ensure common paths are available
+export PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
+
+# Homebrew (macOS Apple Silicon)
+[[ -f /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -110,9 +114,12 @@ source $ZSH/oh-my-zsh.sh
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
 
-export http_proxy=http://fwdproxy:8080
-export https_proxy=http://fwdproxy:8080
-export no_proxy=".fbcdn.net,.facebook.com,.thefacebook.com,.tfbnw.net,.fb.com,.fburl.com,.facebook.net,.sb.fbsbx.com,localhost"
+# Proxy settings (DevVM only)
+if [[ -f /usr/facebook/ops/rc/master.zshrc ]]; then
+    export http_proxy=http://fwdproxy:8080
+    export https_proxy=http://fwdproxy:8080
+    export no_proxy=".fbcdn.net,.facebook.com,.thefacebook.com,.tfbnw.net,.fb.com,.fburl.com,.facebook.net,.sb.fbsbx.com,localhost"
+fi
 
 # Add aliases to ~/.zshrc:
 alias ls='eza --icons'

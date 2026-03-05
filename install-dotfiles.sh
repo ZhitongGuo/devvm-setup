@@ -18,7 +18,9 @@ backup_and_link() {
     local dest="$2"
 
     # If dest is already a symlink pointing to src, skip
-    if [ -L "$dest" ] && [ "$(readlink -f "$dest")" = "$(readlink -f "$src")" ]; then
+    # Use python for portable readlink -f (macOS lacks readlink -f)
+    resolve() { python3 -c "import os; print(os.path.realpath('$1'))"; }
+    if [ -L "$dest" ] && [ "$(resolve "$dest")" = "$(resolve "$src")" ]; then
         log "$(basename "$dest") already linked"
         return
     fi

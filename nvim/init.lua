@@ -12,21 +12,29 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Detect Meta DevVM
+local meta_nvim_path = "/usr/share/fb-editor-support/nvim"
+local is_devvm = vim.fn.isdirectory(meta_nvim_path) ~= 0
+
+local spec = {
+  -- add LazyVim and import its plugins
+  { "LazyVim/LazyVim", tag = "v15.13.0", import = "lazyvim.plugins" },
+  { import = "lazyvim.plugins.extras.lsp.none-ls" },
+  -- import/override with your plugins in `~/.config/nvim/lua/plugins`
+  { import = "plugins" },
+}
+
+-- Add meta.nvim only on DevVMs where it exists
+if is_devvm then
+  table.insert(spec, 2, {
+    dir = meta_nvim_path,
+    name = "meta.nvim",
+    import = "meta.lazyvim",
+  })
+end
+
 require("lazy").setup({
-  spec = {
-    -- add LazyVim and import its plugins
-    { "LazyVim/LazyVim", tag = "v15.13.0", import = "lazyvim.plugins" },
-    -- add Neovim@Meta and import the language service configuration
-    {
-      dir = "/usr/share/fb-editor-support/nvim",
-      name = "meta.nvim",
-      import = "meta.lazyvim",
-    },
-    { import = "lazyvim.plugins.extras.lsp.none-ls" },
-    -- import/override with your plugins in `~/.config/nvim/lua/plugins`
-    -- this can overwrite configurations from all of the above
-    { import = "plugins" },
-  },
+  spec = spec,
   defaults = {
     -- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins
     -- will load during startup. If you know what you're doing, you can set this
