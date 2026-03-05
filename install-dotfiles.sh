@@ -51,6 +51,11 @@ backup_and_link "$DOTFILES_DIR/.tmux.conf"    "$HOME/.tmux.conf"
 backup_and_link "$DOTFILES_DIR/.gitconfig"    "$HOME/.gitconfig"
 backup_and_link "$DOTFILES_DIR/.vimrc"        "$HOME/.vimrc"
 
+# Multi-agent profiles → ~/
+backup_and_link "$DOTFILES_DIR/engineer.md"    "$HOME/engineer.md"
+backup_and_link "$DOTFILES_DIR/manager.md"     "$HOME/manager.md"
+backup_and_link "$DOTFILES_DIR/reviewer.md"    "$HOME/reviewer.md"
+
 # Config files → ~/.config/
 backup_and_link "$DOTFILES_DIR/starship.toml" "$HOME/.config/starship.toml"
 
