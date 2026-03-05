@@ -1,7 +1,11 @@
-source /usr/facebook/ops/rc/master.zshrc
+# Source Meta's master zshrc on DevVMs only
+[[ -f /usr/facebook/ops/rc/master.zshrc ]] && source /usr/facebook/ops/rc/master.zshrc
 
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+# Ensure common paths are available
+export PATH="$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
+
+# Homebrew (macOS Apple Silicon)
+[[ -f /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -110,57 +114,60 @@ source $ZSH/oh-my-zsh.sh
 eval "$(starship init zsh)"
 eval "$(zoxide init zsh)"
 
-export http_proxy=http://fwdproxy:8080
-export https_proxy=http://fwdproxy:8080
-export no_proxy=".fbcdn.net,.facebook.com,.thefacebook.com,.tfbnw.net,.fb.com,.fburl.com,.facebook.net,.sb.fbsbx.com,localhost,127.0.0.1"
+# Proxy settings (DevVM only)
+if [[ -f /usr/facebook/ops/rc/master.zshrc ]]; then
+    export http_proxy=http://fwdproxy:8080
+    export https_proxy=http://fwdproxy:8080
+    export no_proxy=".fbcdn.net,.facebook.com,.thefacebook.com,.tfbnw.net,.fb.com,.fburl.com,.facebook.net,.sb.fbsbx.com,localhost,127.0.0.1"
+fi
 
-# >>> MetaVault (mclone / Google Drive) >>>
-VAULT_MOUNT="$HOME/my-vault"
-VAULT_REMOTE="gdrive:MetaVault"
+# >>> MetaVault (mclone / Google Drive — DevVM only) >>>
+if [[ -f /usr/facebook/ops/rc/master.zshrc ]]; then
+    VAULT_MOUNT="$HOME/my-vault"
+    VAULT_REMOTE="gdrive:MetaVault"
 
-mount-vault() {
-  # Clean up stale FUSE mount if present
-  if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
-    echo "Vault already mounted at $VAULT_MOUNT"
-    return 0
-  fi
-  if [[ -d "$VAULT_MOUNT" ]] && ! ls "$VAULT_MOUNT" &>/dev/null; then
-    echo "Stale mount detected, cleaning up..."
-    fusermount -uz "$VAULT_MOUNT" 2>/dev/null
-  fi
-  mkdir -p "$VAULT_MOUNT"
-  echo "Mounting $VAULT_REMOTE -> $VAULT_MOUNT ..."
-  mclone mount "$VAULT_REMOTE" "$VAULT_MOUNT" \
-    --daemon \
-    --vfs-cache-mode writes \
-    --vfs-cache-max-age 72h \
-    --dir-cache-time 30s \
-    --log-file "$HOME/.mclone-vault.log" \
-    --log-level INFO
-  sleep 1
-  if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
-    echo "Vault mounted successfully."
-  else
-    echo "Warning: mount may still be initializing. Check ~/.mclone-vault.log"
-  fi
-}
+    mount-vault() {
+      if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
+        echo "Vault already mounted at $VAULT_MOUNT"
+        return 0
+      fi
+      if [[ -d "$VAULT_MOUNT" ]] && ! ls "$VAULT_MOUNT" &>/dev/null; then
+        echo "Stale mount detected, cleaning up..."
+        fusermount -uz "$VAULT_MOUNT" 2>/dev/null
+      fi
+      mkdir -p "$VAULT_MOUNT"
+      echo "Mounting $VAULT_REMOTE -> $VAULT_MOUNT ..."
+      mclone mount "$VAULT_REMOTE" "$VAULT_MOUNT" \
+        --daemon \
+        --vfs-cache-mode writes \
+        --vfs-cache-max-age 72h \
+        --dir-cache-time 30s \
+        --log-file "$HOME/.mclone-vault.log" \
+        --log-level INFO
+      sleep 1
+      if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
+        echo "Vault mounted successfully."
+      else
+        echo "Warning: mount may still be initializing. Check ~/.mclone-vault.log"
+      fi
+    }
 
-unmount-vault() {
-  if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
-    fusermount -uz "$VAULT_MOUNT"
-    echo "Vault unmounted."
-  else
-    echo "Vault is not mounted."
-  fi
-}
+    unmount-vault() {
+      if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
+        fusermount -uz "$VAULT_MOUNT"
+        echo "Vault unmounted."
+      else
+        echo "Vault is not mounted."
+      fi
+    }
 
-# Auto-mount vault on interactive login (if gdrive remote is configured)
-if [[ -o interactive ]] && ! mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
-  if mclone listremotes 2>/dev/null | grep -q "^gdrive:"; then
-    mount-vault
-    # Start token refresh daemon (tokens expire every hour)
-    mclone refresh-tokens-periodically --daemon 2>/dev/null
-  fi
+    # Auto-mount vault on interactive login
+    if [[ -o interactive ]] && ! mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
+      if mclone listremotes 2>/dev/null | grep -q "^gdrive:"; then
+        mount-vault
+        mclone refresh-tokens-periodically --daemon 2>/dev/null
+      fi
+    fi
 fi
 # <<< MetaVault <<<
 
