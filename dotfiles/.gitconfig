@@ -1,6 +1,6 @@
 [user]
-    email = YOUR_USERNAME@fb.com
-    name = Your Name
+	email = paytonguo@meta.com
+	name = Zhitong Guo
 [credential "https://github.com"]
     helper =
     helper = !/opt/homebrew/bin/gh auth git-credential

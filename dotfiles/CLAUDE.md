@@ -46,3 +46,22 @@ All tools from devvm-setup are installed:
 - Python: follow PEP 8, use type hints, use pathlib over os.path
 - Config files: prefer TOML/YAML over JSON when possible
 - When writing scripts, make them idempotent (check before installing)
+
+## My Obsidian Vault
+
+My personal knowledge base is at `~/my-vault` (symlink to Google Drive MetaVault).
+
+### Session Start Workflow
+At the beginning of a session, consider reading:
+1. `~/my-vault/Active Todos.md` - See what I'm working on
+2. `~/my-vault/Daily/YYYY-MM-DD.md` - Today's plan and context
+
+### During Session
+- Update `Active Todos.md` as tasks are completed
+- When I learn something significant, save to `~/my-vault/Learnings/<Topic>.md`
+- Add entries to today's daily note
+
+### Session End
+- Update today's daily note with session summary
+- Move completed tasks to Done
+- Capture any learnings worth preserving
