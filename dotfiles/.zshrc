@@ -112,7 +112,57 @@ eval "$(zoxide init zsh)"
 
 export http_proxy=http://fwdproxy:8080
 export https_proxy=http://fwdproxy:8080
-export no_proxy=".fbcdn.net,.facebook.com,.thefacebook.com,.tfbnw.net,.fb.com,.fburl.com,.facebook.net,.sb.fbsbx.com,localhost"
+export no_proxy=".fbcdn.net,.facebook.com,.thefacebook.com,.tfbnw.net,.fb.com,.fburl.com,.facebook.net,.sb.fbsbx.com,localhost,127.0.0.1"
+
+# >>> MetaVault (mclone / Google Drive) >>>
+VAULT_MOUNT="$HOME/my-vault"
+VAULT_REMOTE="gdrive:MetaVault"
+
+mount-vault() {
+  # Clean up stale FUSE mount if present
+  if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
+    echo "Vault already mounted at $VAULT_MOUNT"
+    return 0
+  fi
+  if [[ -d "$VAULT_MOUNT" ]] && ! ls "$VAULT_MOUNT" &>/dev/null; then
+    echo "Stale mount detected, cleaning up..."
+    fusermount -uz "$VAULT_MOUNT" 2>/dev/null
+  fi
+  mkdir -p "$VAULT_MOUNT"
+  echo "Mounting $VAULT_REMOTE -> $VAULT_MOUNT ..."
+  mclone mount "$VAULT_REMOTE" "$VAULT_MOUNT" \
+    --daemon \
+    --vfs-cache-mode writes \
+    --vfs-cache-max-age 72h \
+    --dir-cache-time 30s \
+    --log-file "$HOME/.mclone-vault.log" \
+    --log-level INFO
+  sleep 1
+  if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
+    echo "Vault mounted successfully."
+  else
+    echo "Warning: mount may still be initializing. Check ~/.mclone-vault.log"
+  fi
+}
+
+unmount-vault() {
+  if mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
+    fusermount -uz "$VAULT_MOUNT"
+    echo "Vault unmounted."
+  else
+    echo "Vault is not mounted."
+  fi
+}
+
+# Auto-mount vault on interactive login (if gdrive remote is configured)
+if [[ -o interactive ]] && ! mountpoint -q "$VAULT_MOUNT" 2>/dev/null; then
+  if mclone listremotes 2>/dev/null | grep -q "^gdrive:"; then
+    mount-vault
+    # Start token refresh daemon (tokens expire every hour)
+    mclone refresh-tokens-periodically --daemon 2>/dev/null
+  fi
+fi
+# <<< MetaVault <<<
 
 # Add aliases to ~/.zshrc:
 alias ls='eza --icons'

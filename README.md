@@ -9,6 +9,7 @@ git clone <this-repo> ~/devvm-setup
 cd ~/devvm-setup
 ./setup.sh
 source ~/.zshrc
+./vault-auth.sh          # one-time: configure Google Drive (two-machine OAuth)
 ```
 
 ## Proxy Configuration
@@ -148,7 +149,7 @@ shell-integration = zsh
 
 | File | Description |
 |---|---|
-| `.zshrc` | Oh-my-zsh, starship, zoxide, fwdproxy, aliases (eza, bat) |
+| `.zshrc` | Oh-my-zsh, starship, zoxide, fwdproxy, aliases, MetaVault mount |
 | `.tmux.conf` | 256color, mouse support, 500k history |
 | `.gitconfig` | Template — fill in your username and cert paths |
 | `.vimrc` | Sources Meta's master.vimrc |
@@ -162,6 +163,7 @@ shell-integration = zsh
 |---|---|
 | `setup.sh` | Main idempotent bootstrap (safe to re-run) |
 | `install-dotfiles.sh` | Symlink dotfiles with automatic backup |
+| `vault-auth.sh` | Interactive Google Drive OAuth (two-machine flow) |
 | `dev-session.sh [path]` | Launch tmux session: claude + nvim side-by-side |
 | `claude-code-setup.sh` | Install Claude Code plugins and write settings |
 
@@ -228,20 +230,85 @@ Launch a split tmux session with Claude Code and nvim:
 | `Ctrl-t` | Fuzzy file finder (fzf) |
 | `Alt-c` | Fuzzy cd (fzf) |
 
+## Google Drive / MetaVault Sync
+
+Mount your Google Drive (Obsidian vault, notes, etc.) on every devserver:
+
+### First-time setup (two-machine flow)
+
+Devservers have no browser, so auth requires your **laptop + devserver**:
+
+1. **On the devserver**, run:
+   ```bash
+   ./vault-auth.sh
+   ```
+   Follow the prompts. When asked **"Use auto config?"**, answer **`n`**.
+   It will print a command like:
+   ```
+   rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlIn0"
+   ```
+
+2. **On your Mac** (with mclone or rclone installed), run that command:
+   ```bash
+   # Install if needed: brew install rclone (or use mclone if available)
+   mclone authorize "drive" "eyJzY29wZSI6ImRyaXZlIn0"
+   ```
+   This opens a browser. Authorize with your Meta Google account. It prints a token.
+
+3. **Back on the devserver**, paste the token and finish the config.
+
+### After first-time setup
+
+```bash
+# dotsync2 syncs ~/.config/rclone/rclone.conf across devservers automatically
+# New shells auto-mount gdrive:MetaVault -> ~/my-vault
+# Token refresh daemon keeps the mount alive (tokens expire hourly)
+```
+
+**Shell functions** (available after `source ~/.zshrc`):
+- `mount-vault` — mount Google Drive to `~/my-vault` (handles stale FUSE mounts)
+- `unmount-vault` — cleanly unmount
+
+**Troubleshooting**:
+- Stale mount (`Transport endpoint not connected`): `fusermount -uz ~/my-vault`
+- Token expired: `mclone refresh-token -a -e`
+- Kill stuck processes: `pkill -9 -f mclone`
+- Check logs: `cat ~/.mclone-vault.log`
+- Re-auth from scratch: `./vault-auth.sh`
+
+## dotsync2 (Cross-DevServer Sync)
+
+`setup.sh` configures dotsync2 to sync these paths across all devservers:
+
+| Path | What |
+|---|---|
+| `~/.config/rclone/rclone.conf` | mclone/Google Drive tokens |
+| `~/.claude/CLAUDE.md` | Claude Code persistent memory |
+| `~/.claude/settings.json` | Claude Code settings |
+| `~/.claude/commands/` | Custom slash commands |
+| `~/.claude/hooks/` | Event hooks |
+| `~/.claude/plugins/` | Plugin config |
+| `~/.claude/skills/` | Skills |
+| `~/.claude/agents/` | Agent profiles |
+
+On a new devserver, `dotsync2 sync` (run by `setup.sh`) pulls all config automatically.
+
 ## Manual Steps After Setup
 
 1. **Ghostty**: Install on your local machine (see above) — connects to devvm via SSH
-2. **Git credentials**: Edit `~/.gitconfig` and replace `YOUR_USERNAME` with your unix username
-3. **SSH keys**: `ssh-keygen -t ed25519` if needed
-4. **GitHub auth**: `gh auth login` for GitHub CLI access
-5. **Claude Code**: Run `claude` once to trigger Meta org plugin auto-install
+2. **Google Drive**: Run `./vault-auth.sh` on one devserver (dotsync2 handles the rest)
+3. **Git credentials**: Edit `~/.gitconfig` and replace `YOUR_USERNAME` with your unix username
+4. **SSH keys**: `ssh-keygen -t ed25519` if needed
+5. **GitHub auth**: `gh auth login` for GitHub CLI access
+6. **Claude Code**: Run `claude` once to trigger Meta org plugin auto-install
 
 ## Repo Structure
 
 ```
 ~/devvm-setup/
 ├── README.md                  # This file
-├── setup.sh                   # Main idempotent setup script
+├── setup.sh                   # Main idempotent setup script (Phases 1-9)
+├── vault-auth.sh              # Interactive Google Drive OAuth setup
 ├── dev-session.sh             # tmux dev session (claude + nvim split)
 ├── claude-code-setup.sh       # Claude Code plugins/settings installer
 ├── dotfiles/

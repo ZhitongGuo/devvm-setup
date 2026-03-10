@@ -263,6 +263,65 @@ echo "── Phase 7: Dotfiles ──"
 bash "$SCRIPT_DIR/install-dotfiles.sh"
 echo ""
 
+# ─── Phase 8: mclone (Google Drive / MetaVault) ────────────────────────────
+echo "── Phase 8: mclone (Google Drive mount) ──"
+if command -v mclone &>/dev/null; then
+    log "mclone already installed"
+else
+    warn "Installing mclone via devfeature..."
+    devfeature install mclone || fail "mclone failed to install"
+fi
+devfeature persist mclone 2>/dev/null || true
+log "mclone persisted across reprovisioning"
+
+mkdir -p ~/my-vault
+
+# Check if gdrive remote is already configured (with a valid token)
+if mclone listremotes 2>/dev/null | grep -q "^gdrive:" && \
+   grep -q "token" ~/.config/rclone/rclone.conf 2>/dev/null; then
+    log "gdrive remote already configured with token"
+else
+    warn "gdrive remote not configured — run ./vault-auth.sh after setup"
+fi
+echo ""
+
+# ─── Phase 9: dotsync2 (cross-devserver config sync) ───────────────────────
+echo "── Phase 9: dotsync2 (config sync) ──"
+if command -v dotsync2 &>/dev/null; then
+    log "dotsync2 available"
+
+    # Ensure key paths are tracked
+    DOTSYNC_PATHS=(
+        ".config/rclone/rclone.conf"
+        ".claude"
+        ".claude/"
+        ".claude/CLAUDE.md"
+        ".claude/settings.json"
+        ".claude/commands/"
+        ".claude/hooks/"
+        ".claude/plugins/"
+        ".claude/skills/"
+        ".claude/agents/"
+        ".claude/projects"
+    )
+    EXISTING_PATHS=$(dotsync2 paths list 2>/dev/null)
+    for p in "${DOTSYNC_PATHS[@]}"; do
+        if echo "$EXISTING_PATHS" | grep -qF "\"$p\""; then
+            log "dotsync2 tracking: $p"
+        else
+            dotsync2 paths add "$p" 2>/dev/null && log "dotsync2 added: $p" || true
+        fi
+    done
+
+    # Sync to pull latest config from other devservers
+    warn "Syncing dotsync2..."
+    dotsync2 sync 2>&1 | tail -3
+    log "dotsync2 sync complete"
+else
+    fail "dotsync2 not found — config won't sync across devservers"
+fi
+echo ""
+
 # ─── Verify ─────────────────────────────────────────────────────────────────
 echo "── Verification ──"
 VERIFY_CMDS=(bat eza fd fzf rg zoxide nvim gh fish btop hx zellij delta tmux htop ncdu tree jq wget curl tig lazygit glow duf yq tldr http btm dust procs broot starship)
@@ -286,8 +345,9 @@ echo "  Setup complete!"
 echo ""
 echo "  Next steps:"
 echo "    1. source ~/.zshrc"
-echo "    2. ./dev-session.sh          # launch tmux dev session"
-echo "    3. ./claude-code-setup.sh    # configure Claude Code plugins"
+echo "    2. ./vault-auth.sh           # configure Google Drive (one-time)"
+echo "    3. ./dev-session.sh          # launch tmux dev session"
+echo "    4. ./claude-code-setup.sh    # configure Claude Code plugins"
 echo ""
 echo "  Manual steps:"
 echo "    - SSH keys: ssh-keygen -t ed25519"
