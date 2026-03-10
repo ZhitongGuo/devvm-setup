@@ -58,7 +58,8 @@ backup_and_link "$DOTFILES_DIR/reviewer.md"    "$HOME/reviewer.md"
 backup_and_link "$DOTFILES_DIR/starship.toml" "$HOME/.config/starship.toml"
 
 # Claude Code → ~/.claude/
-backup_and_link "$DOTFILES_DIR/CLAUDE.md"    "$HOME/.claude/CLAUDE.md"
+backup_and_link "$DOTFILES_DIR/CLAUDE.md"             "$HOME/.claude/CLAUDE.md"
+backup_and_link "$DOTFILES_DIR/claude-settings.json"  "$HOME/.claude/settings.json"
 
 # Neovim → ~/.config/nvim/
 backup_and_link "$SCRIPT_DIR/nvim/init.lua"   "$HOME/.config/nvim/init.lua"

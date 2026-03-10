@@ -1,0 +1,13 @@
+{
+  "env": {
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "enabledPlugins": {
+    "code_provenance@Meta": true,
+    "llm-rules@Meta": true,
+    "meta@Meta": true,
+    "meta_codesearch@Meta": true,
+    "meta_knowledge@Meta": true,
+    "trajectory@Meta": true
+  }
+}

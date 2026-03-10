@@ -47,36 +47,15 @@ for plugin in "${META_PLUGINS[@]}"; do
 done
 echo ""
 
-# ─── Write settings.json ────────────────────────────────────────────────────
-echo "── Writing settings.json ──"
-if [ -f "$SETTINGS_FILE" ]; then
-    warn "Backing up existing settings to $SETTINGS_FILE.bak"
-    cp "$SETTINGS_FILE" "$SETTINGS_FILE.bak"
+# ─── settings.json ──────────────────────────────────────────────────────────
+echo "── settings.json ──"
+if [ -L "$SETTINGS_FILE" ]; then
+    log "settings.json already managed by install-dotfiles.sh (symlink)"
+elif [ -f "$SETTINGS_FILE" ]; then
+    log "settings.json already exists — skipping (run install-dotfiles.sh to symlink)"
+else
+    warn "settings.json not found — run install-dotfiles.sh first"
 fi
-
-cat > "$SETTINGS_FILE" << 'EOF'
-{
-  "env": {
-    "DISABLE_AUTOUPDATER": "1"
-  },
-  "enabledPlugins": {
-    "10x-engineer@claude-templates": true,
-    "chat-notifications@claude-templates": true,
-    "code_provenance@Meta": true,
-    "llm-rules@Meta": true,
-    "meta-statusline-pro@claude-templates": true,
-    "meta@Meta": true,
-    "meta_codesearch@Meta": true,
-    "meta_knowledge@Meta": true,
-    "source-control-at-meta@claude-templates": true,
-    "tmux-statusline@claude-templates": true,
-    "trajectory@Meta": true
-  },
-  "skipDangerousModePermissionPrompt": true
-}
-EOF
-
-log "Settings written to $SETTINGS_FILE"
 echo ""
 
 echo "============================================"
