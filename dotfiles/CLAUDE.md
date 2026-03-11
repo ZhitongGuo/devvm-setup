@@ -47,6 +47,17 @@ All tools from devvm-setup are installed:
 - Config files: prefer TOML/YAML over JSON when possible
 - When writing scripts, make them idempotent (check before installing)
 
+## GDrive (DevVM)
+
+My vaults (`~/my-vault`, `~/my-personal-vault`) are mounted via mclone on
+devservers.
+If any GDrive path is inaccessible (permission denied, stale mount, empty
+directory), run:
+```bash
+mclone refresh-token -a
+```
+Then retry the operation. If it still fails, suggest remounting manually.
+
 ## My Obsidian Vault
 
 My personal knowledge base is at `~/my-vault` (symlink to Google Drive MetaVault).
