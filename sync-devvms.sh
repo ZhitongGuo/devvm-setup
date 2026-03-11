@@ -121,6 +121,13 @@ mkdir -p ~/.claude
 cp "$REPO_DIR/dotfiles/CLAUDE.md" ~/.claude/CLAUDE.md
 log "Copied CLAUDE.md (instructions only — session history untouched)"
 
+# Claude custom commands (slash commands like /save-meta, /save, /sod, /eod)
+if [[ -d "$REPO_DIR/dotfiles/claude-commands" ]]; then
+    mkdir -p ~/.claude/commands
+    cp "$REPO_DIR"/dotfiles/claude-commands/*.md ~/.claude/commands/ 2>/dev/null
+    log "Copied Claude custom commands ($(ls "$REPO_DIR/dotfiles/claude-commands/" | wc -l | tr -d ' ') files)"
+fi
+
 # Neovim config
 if [[ -d "$REPO_DIR/nvim" ]]; then
     mkdir -p ~/.config/nvim/lua/plugins ~/.config/nvim/lua/config

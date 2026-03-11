@@ -154,6 +154,7 @@ shell-integration = zsh
 | `.vimrc` | Sources Meta's master.vimrc |
 | `starship.toml` | Custom prompt with git branch icons |
 | `CLAUDE.md` | Claude Code persistent memory (preferences, commands, conventions) |
+| `claude-commands/*.md` | Custom Claude slash commands (`/save-meta`, `/save`, `/sod`, `/eod`, etc.) |
 | `nvim/init.lua` | LazyVim + meta.nvim + tokyonight theme |
 
 ## Scripts
@@ -414,7 +415,7 @@ cat ~/.devvm-sync.log
 
 1. **Clones or pulls** `devvm-setup` into `~/Repos/devvm-setup` on each VM
 2. **Merges dotfiles** using markers (`# >>> devvm-setup >>>`) — appends to existing `.zshrc`, `.tmux.conf`, `.vimrc` without overwriting
-3. **Copies config files** that are fully ours: `starship.toml`, `CLAUDE.md` (instructions only), neovim config
+3. **Copies config files** that are fully ours: `starship.toml`, `CLAUDE.md` (instructions only), neovim config, Claude custom commands (`/save-meta`, `/save`, `/sod`, `/eod`, etc.)
 4. **Sets git identity** only if not already configured
 5. **Never touches**: `~/.claude/` session data, existing shell history, SSH keys, or any other user state
 
