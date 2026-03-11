@@ -275,9 +275,10 @@ Agents communicate via **tmux** (`send-keys` / `capture-pane`) and share context
 
 | Command | Description |
 |---|---|
-| `setup <repo> <N>` | Create N isolated checkouts (git worktree or sl clone) |
+| `setup <repo> <N>` | Create N isolated checkouts (Eden/fbclone, git worktree, or sl clone) |
 | `start <N>` | Launch manager + engineer + reviewer for team N |
 | `stop <N>` | Gracefully stop team N (saves journals first) |
+| `cleanup <N>` | Stop team N and remove its checkout (Eden-safe) |
 | `list` | Show all active agent sessions |
 | `connect <N> [role]` | Attach to a specific agent's tmux session |
 | `logs <N> [role]` | Tail an agent's log output |
@@ -340,7 +341,9 @@ agents/
 - Use `connect` to watch agents work in real-time
 - The Manager handles all coordination — just give it a task and watch
 - Agents save state to journals before shutdown, so they can resume context
-- Works with both Git repos (worktrees) and Sapling repos (clones)
+- Works with Git (worktrees), Sapling (sl clone), and Eden (fbclone) repos
+- On DevVMs with Eden, `setup` auto-detects `.eden` and uses `fbclone` for lightweight FUSE checkouts
+- Use `cleanup <N>` instead of `rm -rf` to properly remove Eden mounts
 
 ## Daily Sync (macOS)
 
