@@ -165,6 +165,7 @@ shell-integration = zsh
 | `dev-session.sh [path]` | Launch tmux session: claude + nvim side-by-side |
 | `claude-code-setup.sh` | Install Claude Code plugins and write settings |
 | `sync-repo.sh` | Daily git pull/push for both branches (master + macos-setup) |
+| `sync-devvms.sh` | SSH into DevVMs and sync repo + dotfiles (merge, not overwrite) |
 
 ## Dev Session
 
@@ -372,6 +373,62 @@ cat ~/.devvm-setup-sync.log
 launchctl bootout gui/$(id -u)/com.payton.devvm-setup-sync
 ```
 
+## DevVM Sync (from macOS)
+
+Sync the devvm-setup repo and dotfiles to remote DevVMs. Merges dotfile additions into existing configs (append-only with markers) — never overwrites existing files or deletes Claude session history.
+
+### Configured VMs
+
+| Host | DC |
+|---|---|
+| `devgpu018.nha2` | NHA |
+| `devgpu020.pci2` | PCI |
+| `devvm3010.eag0` | EAG |
+| `devgpu028.nao3` | NAO |
+| `devgpu011.lco3` | LCO |
+
+### Manual sync
+
+```bash
+# Sync all configured VMs
+./sync-devvms.sh
+
+# Sync specific hosts only
+./sync-devvms.sh devgpu018.nha2 devvm3010.eag0
+```
+
+### Automatic daily sync (10am)
+
+```bash
+cp com.payton.devvm-sync.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.payton.devvm-sync.plist
+```
+
+### Check logs
+
+```bash
+cat ~/.devvm-sync.log
+```
+
+### What it does
+
+1. **Clones or pulls** `devvm-setup` into `~/Repos/devvm-setup` on each VM
+2. **Merges dotfiles** using markers (`# >>> devvm-setup >>>`) — appends to existing `.zshrc`, `.tmux.conf`, `.vimrc` without overwriting
+3. **Copies config files** that are fully ours: `starship.toml`, `CLAUDE.md` (instructions only), neovim config
+4. **Sets git identity** only if not already configured
+5. **Never touches**: `~/.claude/` session data, existing shell history, SSH keys, or any other user state
+
+### How dotfile merging works
+
+On first sync, a managed block is appended to each dotfile:
+```bash
+# >>> devvm-setup >>> zshrc
+<contents from dotfiles/.zshrc>
+# <<< devvm-setup <<< zshrc
+```
+
+On subsequent syncs, only the content between the markers is updated. Everything outside the markers (your existing config, Meta's master.zshrc sourcing, etc.) is left untouched.
+
 ## Manual Steps After Setup
 
 1. **Ghostty**: Install on your local machine (see above) — connects to devvm via SSH
@@ -419,6 +476,8 @@ launchctl bootout gui/$(id -u)/com.payton.devvm-setup-sync
 │           └── ui.lua         # Bufferline slant style, notify history
 ├── install-dotfiles.sh        # Symlink dotfiles into place
 ├── sync-repo.sh               # Daily git sync script (both branches)
-├── com.payton.devvm-setup-sync.plist  # macOS launchd agent for daily sync
+├── sync-devvms.sh             # SSH into DevVMs and sync repo + dotfiles
+├── com.payton.devvm-setup-sync.plist  # launchd: daily repo sync
+├── com.payton.devvm-sync.plist        # launchd: daily DevVM sync
 └── sync-reminders.swift       # Apple Reminders ↔ Obsidian two-way sync
 ```
