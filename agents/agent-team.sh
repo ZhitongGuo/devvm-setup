@@ -182,8 +182,17 @@ cmd_start() {
         log "Starting $session..."
         # Use 'script' to preserve PTY (Claude needs a TTY for interactive mode).
         # Piping through tee destroys the TTY and causes Claude to enter --print mode.
+        # Note: script syntax differs between macOS and Linux:
+        #   macOS:  script -q <logfile> <command> [args...]
+        #   Linux:  script -q -c "<command> [args...]" <logfile>
+        local script_cmd
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            script_cmd="script -q $LOG_DIR/${session}.log $SCRIPT_DIR/utils/agent-start.sh $role $tn"
+        else
+            script_cmd="script -q -c '$SCRIPT_DIR/utils/agent-start.sh $role $tn' $LOG_DIR/${session}.log"
+        fi
         tmux -L "$TMUX_SOCKET" new-session -d -s "$session" -c "$checkout_dir" \
-            "script -q $LOG_DIR/${session}.log $SCRIPT_DIR/utils/agent-start.sh $role $tn; read"
+            "$script_cmd; read"
 
         sleep 2
     done
@@ -271,8 +280,14 @@ cmd_orchestrator_start() {
     source "$CONFIG_FILE" 2>/dev/null || err "Run 'agent-team.sh setup' first"
 
     log "Starting orchestrator..."
+    local script_cmd
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        script_cmd="script -q $LOG_DIR/orchestrator.log $SCRIPT_DIR/utils/claude.sh orchestrator"
+    else
+        script_cmd="script -q -c '$SCRIPT_DIR/utils/claude.sh orchestrator' $LOG_DIR/orchestrator.log"
+    fi
     tmux -L "$TMUX_SOCKET" new-session -d -s "$session" -c "$CHECKOUT_BASE" \
-        "script -q $LOG_DIR/orchestrator.log $SCRIPT_DIR/utils/claude.sh orchestrator; read"
+        "$script_cmd; read"
 
     sleep 3
     tmux -L "$TMUX_SOCKET" send-keys -t "$session" \
