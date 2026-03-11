@@ -164,6 +164,7 @@ shell-integration = zsh
 | `install-dotfiles.sh` | Symlink dotfiles with automatic backup |
 | `dev-session.sh [path]` | Launch tmux session: claude + nvim side-by-side |
 | `claude-code-setup.sh` | Install Claude Code plugins and write settings |
+| `sync-repo.sh` | Daily git pull/push for both branches (master + macos-setup) |
 
 ## Dev Session
 
@@ -339,6 +340,38 @@ agents/
 - Agents save state to journals before shutdown, so they can resume context
 - Works with both Git repos (worktrees) and Sapling repos (clones)
 
+## Daily Sync (macOS)
+
+A launchd agent automatically syncs this repo daily at 9am — pulling and pushing both `master` and `macos-setup` branches.
+
+### Install
+
+```bash
+# Copy the plist (already included in this repo's LaunchAgents)
+cp ~/Repos/devvm-setup/com.payton.devvm-setup-sync.plist ~/Library/LaunchAgents/
+
+# Load it
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.payton.devvm-setup-sync.plist
+```
+
+### Manual trigger
+
+```bash
+launchctl kickstart gui/$(id -u)/com.payton.devvm-setup-sync
+```
+
+### Check logs
+
+```bash
+cat ~/.devvm-setup-sync.log
+```
+
+### Unload
+
+```bash
+launchctl bootout gui/$(id -u)/com.payton.devvm-setup-sync
+```
+
 ## Manual Steps After Setup
 
 1. **Ghostty**: Install on your local machine (see above) — connects to devvm via SSH
@@ -385,5 +418,7 @@ agents/
 │           ├── treesitter.lua # 40+ parsers, proxy-aware, motion keymaps
 │           └── ui.lua         # Bufferline slant style, notify history
 ├── install-dotfiles.sh        # Symlink dotfiles into place
+├── sync-repo.sh               # Daily git sync script (both branches)
+├── com.payton.devvm-setup-sync.plist  # macOS launchd agent for daily sync
 └── sync-reminders.swift       # Apple Reminders ↔ Obsidian two-way sync
 ```

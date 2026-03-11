@@ -159,8 +159,10 @@ cmd_start() {
         fi
 
         log "Starting $session..."
+        # Use 'script' to preserve PTY (Claude needs a TTY for interactive mode).
+        # Piping through tee destroys the TTY and causes Claude to enter --print mode.
         tmux -L "$TMUX_SOCKET" new-session -d -s "$session" -c "$checkout_dir" \
-            "bash -c '$SCRIPT_DIR/utils/agent-start.sh $role $tn 2>&1 | tee $LOG_DIR/${session}.log; read'"
+            "script -q $LOG_DIR/${session}.log $SCRIPT_DIR/utils/agent-start.sh $role $tn; read"
 
         sleep 2
     done
@@ -249,7 +251,7 @@ cmd_orchestrator_start() {
 
     log "Starting orchestrator..."
     tmux -L "$TMUX_SOCKET" new-session -d -s "$session" -c "$CHECKOUT_BASE" \
-        "bash -c '$SCRIPT_DIR/utils/claude.sh orchestrator 2>&1 | tee $LOG_DIR/orchestrator.log; read'"
+        "script -q $LOG_DIR/orchestrator.log $SCRIPT_DIR/utils/claude.sh orchestrator; read"
 
     sleep 3
     tmux -L "$TMUX_SOCKET" send-keys -t "$session" \
