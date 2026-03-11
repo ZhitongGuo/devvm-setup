@@ -18,6 +18,6 @@ if [[ -n "$TEAM_NUM" ]]; then
     PROMPT="${PROMPT//TEAM_NUM/$TEAM_NUM}"
 fi
 
-exec claude --dangerously-skip-permissions \
+exec claude \
     --settings "$SCRIPT_DIR/profiles/$ROLE.json" \
     --append-system-prompt "$PROMPT"
