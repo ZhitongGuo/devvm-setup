@@ -125,7 +125,7 @@ log "Copied CLAUDE.md (instructions only — session history untouched)"
 if [[ -d "$REPO_DIR/dotfiles/claude-commands" ]]; then
     mkdir -p ~/.claude/commands
     cp "$REPO_DIR"/dotfiles/claude-commands/*.md ~/.claude/commands/ 2>/dev/null
-    log "Copied Claude custom commands ($(ls "$REPO_DIR/dotfiles/claude-commands/" | wc -l | tr -d ' ') files)"
+    log "Copied Claude custom commands"
 fi
 
 # Neovim config
