@@ -9,7 +9,6 @@ git clone <this-repo> ~/devvm-setup
 cd ~/devvm-setup
 ./setup.sh
 source ~/.zshrc
-./vault-auth.sh          # one-time: configure Google Drive (two-machine OAuth)
 ```
 
 ## Proxy Configuration
@@ -149,8 +148,8 @@ shell-integration = zsh
 
 | File | Description |
 |---|---|
-| `.zshrc` | Oh-my-zsh, starship, zoxide, fwdproxy, aliases, MetaVault mount |
-| `.tmux.conf` | 256color, mouse support, 500k history |
+| `.zshrc` | Oh-my-zsh, starship, zoxide, fwdproxy, aliases (eza, bat) |
+| `.tmux.conf` | 256color, mouse, vi-mode copy-paste, OSC 52 clipboard |
 | `.gitconfig` | Template — fill in your username and cert paths |
 | `.vimrc` | Sources Meta's master.vimrc |
 | `starship.toml` | Custom prompt with git branch icons |
@@ -163,7 +162,6 @@ shell-integration = zsh
 |---|---|
 | `setup.sh` | Main idempotent bootstrap (safe to re-run) |
 | `install-dotfiles.sh` | Symlink dotfiles with automatic backup |
-| `vault-auth.sh` | Interactive Google Drive OAuth (two-machine flow) |
 | `dev-session.sh [path]` | Launch tmux session: claude + nvim side-by-side |
 | `claude-code-setup.sh` | Install Claude Code plugins and write settings |
 
@@ -207,9 +205,13 @@ Launch a split tmux session with Claude Code and nvim:
 |---|---|
 | `Ctrl-b %` | Split vertical |
 | `Ctrl-b "` | Split horizontal |
-| `Ctrl-b arrow` | Navigate panes |
+| `Alt-arrow` | Navigate panes (no prefix) |
 | `Ctrl-b d` | Detach session |
-| `Ctrl-b [` | Scroll mode |
+| `Ctrl-b [` | Enter copy mode (scroll/select) |
+| `v` / `V` / `Ctrl-v` | Visual / line / block select (in copy mode) |
+| `y` | Yank to system clipboard (in copy mode) |
+| `Ctrl-b ]` | Paste from tmux buffer |
+| Mouse drag | Auto-copies selection to clipboard |
 
 ### Ghostty
 
@@ -230,87 +232,136 @@ Launch a split tmux session with Claude Code and nvim:
 | `Ctrl-t` | Fuzzy file finder (fzf) |
 | `Alt-c` | Fuzzy cd (fzf) |
 
-## Google Drive / MetaVault Sync
+## Multi-Agent Team (Claude Code)
 
-Mount your Google Drive (Obsidian vault, notes, etc.) on every devserver:
+Run parallel Claude Code agents as a coordinated team — a Manager plans and delegates, Engineers implement, and Reviewers audit. Inspired by [master-claude](https://github.com/Chef-SWanger/master-claude).
 
-### First-time setup (two-machine flow)
+### How It Works
 
-Devservers have no browser, so auth requires your **laptop + devserver**:
-
-1. **On the devserver**, run:
-   ```bash
-   ./vault-auth.sh
-   ```
-   Follow the prompts. When asked **"Use auto config?"**, answer **`n`**.
-   It will print a command like:
-   ```
-   rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlIn0"
-   ```
-
-2. **On your Mac** (with mclone or rclone installed), run that command:
-   ```bash
-   # Install if needed: brew install rclone (or use mclone if available)
-   mclone authorize "drive" "eyJzY29wZSI6ImRyaXZlIn0"
-   ```
-   This opens a browser. Authorize with your Meta Google account. It prints a token.
-
-3. **Back on the devserver**, paste the token and finish the config.
-
-### After first-time setup
-
-```bash
-# dotsync2 syncs ~/.config/rclone/rclone.conf across devservers automatically
-# New shells auto-mount gdrive:MetaVault -> ~/my-vault
-# Token refresh daemon keeps the mount alive (tokens expire hourly)
+```
+┌─────────────┐     delegates      ┌─────────────┐
+│   Manager   │ ──────────────────→│  Engineer   │
+│  (planner)  │←────────────────── │ (implements)│
+└──────┬──────┘    status/done     └─────────────┘
+       │
+       │  assigns review           ┌─────────────┐
+       └──────────────────────────→│  Reviewer   │
+                                   │  (audits)   │
+                                   └─────────────┘
 ```
 
-**Shell functions** (available after `source ~/.zshrc`):
-- `mount-vault` — mount Google Drive to `~/my-vault` (handles stale FUSE mounts)
-- `unmount-vault` — cleanly unmount
+Agents communicate via **tmux** (`send-keys` / `capture-pane`) and share context through **Memory.md** (project-wide) and **journal files** (per-agent). Each team gets its own isolated repo checkout.
 
-**Troubleshooting**:
-- Stale mount (`Transport endpoint not connected`): `fusermount -uz ~/my-vault`
-- Token expired: `mclone refresh-token -a -e`
-- Kill stuck processes: `pkill -9 -f mclone`
-- Check logs: `cat ~/.mclone-vault.log`
-- Re-auth from scratch: `./vault-auth.sh`
+### Quick Start
 
-## dotsync2 (Cross-DevServer Sync)
+```bash
+# 1. Setup — create 2 team checkouts from a repo
+./agents/agent-team.sh setup ~/my-project 2
 
-`setup.sh` configures dotsync2 to sync these paths across all devservers:
+# 2. Start team 1 (launches manager + engineer + reviewer)
+./agents/agent-team.sh start 1
 
-| Path | What |
+# 3. Connect to the manager to give it a task
+./agents/agent-team.sh connect 1 manager
+
+# 4. (Optional) Start an orchestrator for multi-team coordination
+./agents/agent-team.sh orchestrator:start
+```
+
+### Commands
+
+| Command | Description |
 |---|---|
-| `~/.config/rclone/rclone.conf` | mclone/Google Drive tokens |
-| `~/.claude/CLAUDE.md` | Claude Code persistent memory |
-| `~/.claude/settings.json` | Claude Code settings |
-| `~/.claude/commands/` | Custom slash commands |
-| `~/.claude/hooks/` | Event hooks |
-| `~/.claude/plugins/` | Plugin config |
-| `~/.claude/skills/` | Skills |
-| `~/.claude/agents/` | Agent profiles |
+| `setup <repo> <N>` | Create N isolated checkouts (git worktree or sl clone) |
+| `start <N>` | Launch manager + engineer + reviewer for team N |
+| `stop <N>` | Gracefully stop team N (saves journals first) |
+| `list` | Show all active agent sessions |
+| `connect <N> [role]` | Attach to a specific agent's tmux session |
+| `logs <N> [role]` | Tail an agent's log output |
+| `orchestrator:start` | Start the cross-team orchestrator |
+| `orchestrator:stop` | Stop the orchestrator |
+| `stop-all` | Kill all agent sessions |
 
-On a new devserver, `dotsync2 sync` (run by `setup.sh`) pulls all config automatically.
+### Agent Roles
+
+| Role | Prompt | Responsibilities |
+|---|---|---|
+| **Manager** | `agents/prompts/manager.md` | Plans tasks, delegates to engineer, assigns reviews |
+| **Engineer** | `agents/prompts/engineer.md` | Implements changes, runs tests, reports completion |
+| **Reviewer** | `agents/prompts/reviewer.md` | Audits code quality, approves or requests changes |
+| **Orchestrator** | `agents/prompts/orchestrator.md` | Coordinates multiple teams on large projects |
+
+### Directory Structure
+
+```
+agents/
+├── agent-team.sh              # Main CLI entrypoint
+├── profiles/                  # Claude CLI settings per role
+│   ├── engineer.json
+│   ├── manager.json
+│   ├── reviewer.json
+│   └── orchestrator.json
+├── prompts/                   # System prompts for each agent
+│   ├── common/
+│   │   ├── compaction.md      # Context preservation during compaction
+│   │   └── filesystem-rules.md # Safe search/navigation rules
+│   ├── engineer.md
+│   ├── manager.md
+│   ├── reviewer.md
+│   └── orchestrator.md
+└── utils/
+    ├── agent-start.sh         # VCS bootstrap (Git + Sapling)
+    └── claude.sh              # Prompt assembly & Claude CLI launcher
+```
+
+### Runtime State
+
+```
+~/.agent-team/
+├── config                     # CHECKOUT_BASE, SOURCE_REPO
+├── logs/                      # Per-agent session logs
+└── checkouts/
+    ├── team_01/               # Isolated repo for team 1
+    ├── team_02/               # Isolated repo for team 2
+    └── Memory.md              # Shared project-wide context
+```
+
+### Customizing
+
+- **Profiles**: Edit `agents/profiles/<role>.json` to add Claude plugins or env vars
+- **Prompts**: Edit `agents/prompts/<role>.md` to change agent behavior
+- **Common rules**: Add new `.md` files to `agents/prompts/common/` — they're auto-appended to all prompts
+
+### Tips
+
+- Use `connect` to watch agents work in real-time
+- The Manager handles all coordination — just give it a task and watch
+- Agents save state to journals before shutdown, so they can resume context
+- Works with both Git repos (worktrees) and Sapling repos (clones)
 
 ## Manual Steps After Setup
 
 1. **Ghostty**: Install on your local machine (see above) — connects to devvm via SSH
-2. **Google Drive**: Run `./vault-auth.sh` on one devserver (dotsync2 handles the rest)
-3. **Git credentials**: Edit `~/.gitconfig` and replace `YOUR_USERNAME` with your unix username
-4. **SSH keys**: `ssh-keygen -t ed25519` if needed
-5. **GitHub auth**: `gh auth login` for GitHub CLI access
-6. **Claude Code**: Run `claude` once to trigger Meta org plugin auto-install
+2. **Git credentials**: Edit `~/.gitconfig` and replace `YOUR_USERNAME` with your unix username
+3. **SSH keys**: `ssh-keygen -t ed25519` if needed
+4. **GitHub auth**: `gh auth login` for GitHub CLI access
+5. **Claude Code**: Run `claude` once to trigger Meta org plugin auto-install
 
 ## Repo Structure
 
 ```
 ~/devvm-setup/
 ├── README.md                  # This file
-├── setup.sh                   # Main idempotent setup script (Phases 1-9)
-├── vault-auth.sh              # Interactive Google Drive OAuth setup
+├── setup.sh                   # Main idempotent bootstrap (DevVM)
+├── setup-macos.sh             # macOS bootstrap (Homebrew-based)
 ├── dev-session.sh             # tmux dev session (claude + nvim split)
 ├── claude-code-setup.sh       # Claude Code plugins/settings installer
+├── agents/                    # Multi-agent orchestration system
+│   ├── agent-team.sh          # Main CLI (setup/start/stop/connect)
+│   ├── profiles/              # Claude CLI settings per role
+│   ├── prompts/               # System prompts (manager/engineer/reviewer/orchestrator)
+│   │   └── common/            # Shared rules (compaction, filesystem safety)
+│   └── utils/                 # VCS bootstrap + Claude launcher
 ├── dotfiles/
 │   ├── .zshrc                 # Full zsh config
 │   ├── .tmux.conf             # tmux config
@@ -333,5 +384,6 @@ On a new devserver, `dotsync2 sync` (run by `setup.sh`) pulls all config automat
 │           ├── lsp.lua        # Truncated diagnostics, arc lint timeout
 │           ├── treesitter.lua # 40+ parsers, proxy-aware, motion keymaps
 │           └── ui.lua         # Bufferline slant style, notify history
-└── install-dotfiles.sh        # Symlink dotfiles into place
+├── install-dotfiles.sh        # Symlink dotfiles into place
+└── sync-reminders.swift       # Apple Reminders ↔ Obsidian two-way sync
 ```
