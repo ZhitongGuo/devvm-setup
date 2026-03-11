@@ -96,9 +96,30 @@ EOF
         fi
 
         if [[ -d "$repo_path/.sl" ]]; then
-            # Sapling repo — use sl clone
-            log "Creating Sapling clone for team $tn..."
-            sl clone "$repo_path" "$checkout_dir"
+            # Sapling repo — detect Eden vs non-Eden
+            if [[ -d "$repo_path/.eden" ]] && command -v eden &>/dev/null; then
+                # Eden-backed repo — use fbclone for a lightweight FUSE checkout
+                local repo_name
+                repo_name=$(basename "$repo_path")
+                local eden_dest="${checkout_dir}"
+                log "Creating Eden clone of $repo_name for team $tn..."
+                if command -v fbclone &>/dev/null; then
+                    fbclone "$repo_name" --eden "$eden_dest"
+                else
+                    # Fallback: use eden clone directly with the backing repo
+                    local backing_repo="/data/users/$USER/.eden-backing-repos/$repo_name"
+                    if [[ -d "$backing_repo" ]]; then
+                        eden clone "$backing_repo" -r master "$eden_dest"
+                    else
+                        log "WARN: fbclone not found and no backing repo. Falling back to sl clone..."
+                        sl clone "$repo_path" "$checkout_dir"
+                    fi
+                fi
+            else
+                # Non-Eden Sapling repo — use sl clone
+                log "Creating Sapling clone for team $tn..."
+                sl clone "$repo_path" "$checkout_dir"
+            fi
         elif git -C "$repo_path" rev-parse --git-dir &>/dev/null; then
             # Git repo — use worktree
             log "Creating Git worktree for team $tn..."
@@ -276,6 +297,36 @@ cmd_stop_all() {
     log "All sessions terminated"
 }
 
+cmd_cleanup() {
+    local team_num="${1:?Usage: agent-team.sh cleanup <N>}"
+    local tn
+    tn=$(fmt_team "$team_num")
+
+    source "$CONFIG_FILE" 2>/dev/null || err "No config found"
+
+    local checkout_dir="$CHECKOUT_BASE/${CHECKOUT_PREFIX}_${tn}"
+    [[ -d "$checkout_dir" ]] || { log "Team $tn checkout not found"; return; }
+
+    # Stop agents first
+    cmd_stop "$team_num" 2>/dev/null || true
+
+    # Remove checkout — use eden rm for Eden mounts, git worktree remove for Git
+    if [[ -d "$checkout_dir/.eden" ]] && command -v eden &>/dev/null; then
+        log "Removing Eden checkout for team $tn..."
+        eden rm "$checkout_dir"
+    elif [[ -f "$checkout_dir/.git" ]] && grep -q "gitdir:" "$checkout_dir/.git" 2>/dev/null; then
+        log "Removing Git worktree for team $tn..."
+        local main_repo
+        main_repo=$(grep "gitdir:" "$checkout_dir/.git" | sed 's/gitdir: //' | sed 's|/.git/worktrees/.*||')
+        git -C "$main_repo" worktree remove "$checkout_dir" --force 2>/dev/null || rm -rf "$checkout_dir"
+    else
+        log "Removing directory for team $tn..."
+        rm -rf "$checkout_dir"
+    fi
+
+    log "Team $tn cleaned up"
+}
+
 # --- Main ---
 
 cmd="${1:-help}"
@@ -285,6 +336,7 @@ case "$cmd" in
     setup)              cmd_setup "$@" ;;
     start)              cmd_start "$@" ;;
     stop)               cmd_stop "$@" ;;
+    cleanup)            cmd_cleanup "$@" ;;
     list)               cmd_list ;;
     connect)            cmd_connect "$@" ;;
     logs)               cmd_logs "$@" ;;
@@ -299,6 +351,7 @@ Commands:
   setup <repo-path> <N>    Create N repo checkouts for agent teams
   start <N>                Start all agents for team N
   stop <N>                 Stop all agents for team N
+  cleanup <N>              Stop team N and remove its checkout (Eden-safe)
   list                     List active teams and agents
   connect <N> [role]       Attach to an agent's tmux session
   logs <N> [role]          Tail agent logs
