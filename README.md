@@ -11,6 +11,20 @@ cd ~/devvm-setup
 source ~/.zshrc
 ```
 
+## Proxy Configuration
+
+Add these to your shell profile (`~/.zshrc` or `~/.bashrc`) to route traffic through Meta's forward proxy:
+
+```bash
+export https_proxy=http://fwdproxy:8080
+export http_proxy=http://fwdproxy:8080
+export HTTPS_PROXY=$https_proxy
+export HTTP_PROXY=$http_proxy
+export no_proxy=.facebook.com,.thefacebook.com,.fb.com,.internalfb.com,localhost,127.0.0.1
+```
+
+These are required for most external network access on devvms (e.g., `curl`, `git clone`, `go install`, `npm install`).
+
 ## Installing Ghostty
 
 [Ghostty](https://ghostty.org) is a fast, feature-rich, GPU-accelerated terminal emulator that uses platform-native UI. It supports ligatures, true color, images (Kitty protocol), and has excellent font rendering.
