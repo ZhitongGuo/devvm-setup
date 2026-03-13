@@ -57,7 +57,8 @@ fi
 cat > "$SETTINGS_FILE" << 'EOF'
 {
   "env": {
-    "DISABLE_AUTOUPDATER": "1"
+    "DISABLE_AUTOUPDATER": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "enabledPlugins": {
     "10x-engineer@claude-templates": true,
