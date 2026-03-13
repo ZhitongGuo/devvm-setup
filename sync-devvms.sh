@@ -120,6 +120,12 @@ mkdir -p ~/.claude
 cp "$REPO_DIR/dotfiles/CLAUDE.md" ~/.claude/CLAUDE.md
 log "Copied CLAUDE.md (instructions only — session history untouched)"
 
+# Claude settings.json — permissions, plugins, env vars
+if [[ -f "$REPO_DIR/dotfiles/claude-settings.json" ]]; then
+    cp "$REPO_DIR/dotfiles/claude-settings.json" ~/.claude/settings.json
+    log "Copied Claude settings.json"
+fi
+
 # Claude custom commands (slash commands like /save-meta, /save, /sod, /eod)
 if [[ -d "$REPO_DIR/dotfiles/claude-commands" ]]; then
     mkdir -p ~/.claude/commands

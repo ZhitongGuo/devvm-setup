@@ -54,28 +54,7 @@ if [ -f "$SETTINGS_FILE" ]; then
     cp "$SETTINGS_FILE" "$SETTINGS_FILE.bak"
 fi
 
-cat > "$SETTINGS_FILE" << 'EOF'
-{
-  "env": {
-    "DISABLE_AUTOUPDATER": "1",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  },
-  "enabledPlugins": {
-    "10x-engineer@claude-templates": true,
-    "chat-notifications@claude-templates": true,
-    "code_provenance@Meta": true,
-    "llm-rules@Meta": true,
-    "meta-statusline-pro@claude-templates": true,
-    "meta@Meta": true,
-    "meta_codesearch@Meta": true,
-    "meta_knowledge@Meta": true,
-    "source-control-at-meta@claude-templates": true,
-    "tmux-statusline@claude-templates": true,
-    "trajectory@Meta": true
-  },
-  "skipDangerousModePermissionPrompt": true
-}
-EOF
+cp "$SCRIPT_DIR/dotfiles/claude-settings.json" "$SETTINGS_FILE"
 
 log "Settings written to $SETTINGS_FILE"
 echo ""
