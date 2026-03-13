@@ -18,6 +18,7 @@ DEFAULT_HOSTS=(
     devvm3010.eag0
     devgpu028.nao3
     devgpu011.lco3
+    devvm25260.cln0
 )
 
 HOSTS=("${@:-${DEFAULT_HOSTS[@]}}")
