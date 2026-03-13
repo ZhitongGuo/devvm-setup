@@ -19,5 +19,6 @@ if [[ -n "$TEAM_NUM" ]]; then
 fi
 
 exec claude \
+    --dangerously-skip-permissions \
     --settings "$SCRIPT_DIR/profiles/$ROLE.json" \
     --append-system-prompt "$PROMPT"
