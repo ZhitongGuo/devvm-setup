@@ -15,7 +15,6 @@ LOG_FILE="$HOME/.devvm-sync.log"
 DEFAULT_HOSTS=(
     devgpu018.nha2
     devgpu020.pci2
-    devvm3010.eag0
     devgpu028.nao3
     devgpu011.lco3
 )
