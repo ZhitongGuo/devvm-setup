@@ -45,5 +45,15 @@ else
     echo "[agent-start] No recognized VCS found. Continuing without sync..."
 fi
 
+# Clean up stale Claude settings files in /tmp that may be owned by other users.
+# On shared devgpus, these cause EACCES errors and prevent Claude from starting.
+for f in /tmp/claude-settings-*.json; do
+    [[ -e "$f" ]] || continue
+    if [[ ! -w "$f" ]]; then
+        echo "[agent-start] Removing inaccessible settings cache: $f"
+        sudo rm -f "$f" 2>/dev/null || echo "[agent-start] Warning: could not remove $f (no sudo?)"
+    fi
+done
+
 # Launch claude with the appropriate role.
 exec "$SCRIPT_DIR/utils/claude.sh" "$ROLE" "$TEAM_NUM"
