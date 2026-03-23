@@ -1,3 +1,6 @@
+# Fix fpath before anything else (devvm zsh ships with broken default fpath)
+fpath=(/usr/share/zsh/${ZSH_VERSION}/functions /usr/share/zsh/site-functions $fpath)
+
 # Source Meta's master zshrc on DevVMs only
 [[ -f /usr/facebook/ops/rc/master.zshrc ]] && source /usr/facebook/ops/rc/master.zshrc
 
