@@ -269,6 +269,8 @@ Agents communicate via **tmux** (`send-keys` / `capture-pane`) and share context
 
 # 4. (Optional) Start an orchestrator for multi-team coordination
 ./agents/agent-team.sh orchestrator:start
+
+export META_CLAUDE_CODE_RELEASE=latest
 ```
 
 ### Commands
