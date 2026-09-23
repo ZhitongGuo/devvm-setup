@@ -9,5 +9,6 @@
     "meta_codesearch@Meta": true,
     "meta_knowledge@Meta": true,
     "trajectory@Meta": true
-  }
+  },
+  "tui": "fullscreen"
 }
