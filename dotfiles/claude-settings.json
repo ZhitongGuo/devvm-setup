@@ -31,5 +31,6 @@
     "tmux-statusline@claude-templates": true,
     "trajectory@Meta": true
   },
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true
 }
